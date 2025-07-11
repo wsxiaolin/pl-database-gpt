@@ -16,7 +16,7 @@ const tishi = `
 `;
 
 module.exports = async function sendPostRequest(text) {
-  const url = "https://spark-api-open.xf-yun.com/v1/chat/completions";
+  const url = "https://spark-api-open.xf-yun.com/v2/chat/completions";
   const data = {
     model: "x1",
     messages: [
@@ -39,11 +39,13 @@ module.exports = async function sendPostRequest(text) {
 
   try {
     const response = await axios.post(url, data, { headers });
+          // console.log(response.data)
     if (!response.data.choices[0].message.content) {
+
       throw new Error();
     }
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.log(123123123)
+    console.log(111)
   }
 }

@@ -54,7 +54,7 @@ async function main() {
     tags: ["精选"],
     take: -100,
     // From:nu,
-    Skip: 350,
+    Skip: 1090,
   });
   for (const i of list.Data.$values) {
     if (list.Data.$values.length == 0) process.exit(0);
@@ -67,8 +67,9 @@ async function main() {
       continue;
     }
     const q = summary.Data.Description.join("");
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 4000));
     sendPostRequest(q).then((res) => {
+      // console.log(res)
      
       try {
             let cleanedRes = res.replace(/```json\s*|\s*```/g, "");
