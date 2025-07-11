@@ -1,48 +1,30 @@
-const sqlite3 = require('sqlite3').verbose();
+const db = require('./crate');
 
-// 打开数据库连接（如果数据库不存在，它将被创建）
-const db = new sqlite3.Database('./data.db');
-
-// 动态构建查询语句并执行查询
 function query(params) {
   return new Promise((resolve, reject) => {
-    let sql = 'SELECT * FROM data WHERE 1=1'; // `1=1` 是为了便于拼接其他条件
-    let queryParams = [];
+    // 构建NeDB查询条件
+    const queryConditions = {};
+    
+    if (params.id) {
+      queryConditions.id = params.id;
+    }
 
     if (params.name) {
-      sql += ' AND name LIKE ?';
-      queryParams.push(`%${params.name}%`);
+      // 使用正则表达式实现LIKE查询
+      queryConditions.name = new RegExp(params.name, 'i');
     }
 
-    if (params.id) {
-      sql += ' AND id = ?';
-      queryParams.push(params.id);
-    }
-
-    // 执行查询
-    db.all(sql, queryParams, (err, rows) => {
+    db.find(queryConditions, (err, docs) => {
       if (err) {
         console.error('Error executing query:', err.message);
         reject(err);
       } else {
-        resolve(rows);
+        resolve(docs);
       }
     });
   });
 }
 
-// 导出查询函数
 module.exports = {
   query
 };
-
-// 在模块被要求时关闭数据库连接
-process.on('exit', () => {
-  db.close((err) => {
-    if (err) {
-      console.error('Error closing the database connection:', err.message);
-    } else {
-      console.log('Database connection closed');
-    }
-  });
-});

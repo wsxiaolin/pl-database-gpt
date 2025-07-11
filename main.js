@@ -40,7 +40,7 @@ let skip = [
 
 pl.setConfig({
   timeout: 10000,
-  consolelog: false,
+  consolelog: true,
   consoleResponse: false,
   consoleError: false,
   checkHttpsAgent: false,
@@ -53,7 +53,8 @@ async function main() {
   const list = await user.projects.query("Discussion", {
     tags: ["精选"],
     take: -100,
-    skip: 0,
+    // From:nu,
+    Skip: 350,
   });
   for (const i of list.Data.$values) {
     if (list.Data.$values.length == 0) process.exit(0);
@@ -66,9 +67,12 @@ async function main() {
       continue;
     }
     const q = summary.Data.Description.join("");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    sendPostRequest(q).then((re) => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    sendPostRequest(q).then((res) => {
+     
       try {
+            let cleanedRes = res.replace(/```json\s*|\s*```/g, "");
+    let re = JSON.parse(cleanedRes);
         insert({
           id: i.ID,
           name: i.Subject,
@@ -85,8 +89,7 @@ async function main() {
           readability: Number(re.readability),
         });
       } catch (e) {
-        console.log(e);
-        console.log(summary);
+        console.log(`失效:`,i.ID,res);
       }
     });
   }

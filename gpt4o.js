@@ -1,25 +1,49 @@
 const axios = require("axios");
-const qs = require("querystring");
+const fs = require("fs");
+const tishi = `
+你正在执行结构化信息提取任务。必须且只能输出无格式纯文本的JSON对象，确保JSON.parse可直接解析。绝对禁止任何非JSON内容，包括：1)自然语言说明 2)代码块标记 3)特殊符号。完整字段要求：
+{
+  "summary": "约100字中文摘要，需完整覆盖核心论点与关键数据",
+  "Subject1": ["必选1-2项", "从给定12个一级学科中选择", "历史相关必须标注'历史学'"],
+  "Subject2": ["必选1-3项", "严格对应GB/T 13745-2009二级学科名称"],
+  "keywords": ["5-10个关键词", "包含学术术语与大众检索词"],
+  "readability": "0.00-1.00浮点数，需按[科普=0.3, 学报=0.6, 顶会=0.9]梯度赋值"
+}
+格式死亡红线：①缺失字段立即报错 ②数值未加引号视为格式错误 ③数组元素必须双引号包裹。示范正确格式：
+{"summary":"...","Subject1":["工学"],"Subject2":["机械设计及理论"],"keywords":["流体力学"],"readability":0.72}
+现在处理该文章
 
-const tishi = `回复不要换行，回复不要换行！回复不要放在代码块内，输出纯文本！！你好,我需要你作为一个API回应我的请求,返回格式为json(不要换行，以纯文本回复)。我会给你一篇文章,你需要返回以下参数:summary:给出他的摘要(约200字),Subject1(数组，交叉学科就返回多个）：文章的一级学科[请格外注意区分历史与其他】(哲学、经济学、法学、教育学、文学、历史学、理学、工学、农学、医学、军事学、管理学之中选出你认为最合适的一个【交叉学科的话可以列出多个，不过最好只有一个】);Subject2(数组，交叉学科就返回多个）:文章的二级学科（依据中华人民共和国国家标准学科分类与代码选出你认为最合适的【交叉学科列出多个】），keywords【数组】：可能的搜索关键词，可以多有几个【不要超过10个】readability【浮点数】阅读难易指数，记小学一年级科学课本难度为0，SCI论文难度为1，请使用0－1直接的两位小数表示。文章如下(除了我要求的JSON格式之外,不要回答别的内容！！)`;
+`;
 
-module.exports = async function sendPostRequest(msg) {
-  try {
-    const response = await axios.post(
-      "https://apii.lolimi.cn/api/4o/gpt4o",
-      qs.stringify({
-        sx: tishi,
-        key: process.env.GPT4O,
-        msg: tishi + msg + tishi,
-      }),
+module.exports = async function sendPostRequest(text) {
+  const url = "https://spark-api-open.xf-yun.com/v1/chat/completions";
+  const data = {
+    model: "x1",
+    messages: [
       {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-    return JSON.parse(response.data.data.content);
+        role: "system",
+        content:
+          tishi,
+      },
+      {
+        role: "user",
+        content: "|||" + text + "|||",
+      },
+    ],
+    max_tokens: 500,
+  };
+
+  const headers = {
+    Authorization: `Bearer RGaKKFOztiUPoGEkeSPP:sfbjYJktAbAYQVhqoUjp`,
+  };
+
+  try {
+    const response = await axios.post(url, data, { headers });
+    if (!response.data.choices[0].message.content) {
+      throw new Error();
+    }
+    return response.data.choices[0].message.content;
   } catch (error) {
-    console.error(error);
+    console.log(123123123)
   }
-};
+}

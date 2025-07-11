@@ -1,50 +1,36 @@
-const sqlite3 = require("sqlite3").verbose();
-const { promisify } = require("util");
+const db = require('../sql/crate');
 
-// 打开数据库连接
-const dbPath = "./data.db";
-const db = new sqlite3.Database(dbPath);
-
-// 将 db.all 转换为基于 promise 的方法
-const dbAll = promisify(db.all.bind(db));
-
-// 查询函数
 async function search(keys, limit = 20) {
   if (!Array.isArray(keys)) {
     keys = [keys];
   }
 
-  const placeholders = keys
-    .map(
-      () =>
-        "(primaryDiscipline LIKE ? OR secondaryDiscipline LIKE ? OR keyWords LIKE ?)"
-    )
-    .join(" OR ");
-  const query = `
-        SELECT *
-        FROM data
-        WHERE ${placeholders}
-        ORDER BY RANDOM()
-        LIMIT ?;
-    `;
+  // 构建NeDB查询条件
+  const queryConditions = {
+    $or: keys.flatMap(key => [
+      { primaryDiscipline: { $regex: new RegExp(key, 'i') } },
+      { secondaryDiscipline: { $regex: new RegExp(key, 'i') } },
+      { keyWords: { $regex: new RegExp(key, 'i') } }
+    ])
+  };
 
-  // 创建查询参数
-  const params = keys.flatMap((key) => [`%${key}%`, `%${key}%`, `%${key}%`]);
-  params.push(limit);
-
-  try {
-    // 执行查询并返回结果
-    return await dbAll(query, params);
-  } catch (err) {
-    console.error("Error fetching records:", err.message);
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    db.find(queryConditions).exec((err, docs) => {
+      if (err) {
+        console.error("Error fetching records:", err.message);
+        reject(err);
+      } else {
+        // 实现随机排序
+        const shuffled = docs
+          .map(value => ({ value, sort: Math.random() }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(({ value }) => value)
+          .slice(0, limit);
+        
+        resolve(shuffled);
+      }
+    });
+  });
 }
 
-// 关闭数据库连接
-process.on("exit", () => {
-  db.close();
-});
-
-// 导出模块
 module.exports = search;
